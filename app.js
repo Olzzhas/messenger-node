@@ -32,14 +32,46 @@ app.use(errorMiddleware);
 mongoose.set('strictQuery', false);
 
 io.on('connection', (socket) => {
-   console.log('A user connected');
+   // console.log('A user connected');
 
-   socket.on('send_message', (data) => {
-      socket.broadcast.emit('receive_message', data);
+   // socket.on('send_message', (data) => {
+   //    socket.broadcast.emit('receive_message', data);
+   // });
+
+   // socket.on('disconnect', () => {
+   //    console.log('User disconnected');
+   // });
+   let onlineUsers = [];
+
+   console.log('new connection', socket.id);
+
+   // listen to a connection
+   socket.on('addNewUser', (userId) => {
+      !onlineUsers.some((user) => user.userId === userId) &&
+         onlineUsers.push({
+            userId,
+            socketId: socket.id,
+         });
+
+      console.log('onlineUsers', onlineUsers);
+
+      io.emit('getOnlineUsers', onlineUsers);
+   });
+
+   socket.on('sendMessage', (message) => {
+      const user = onlineUsers.find(
+         (user) => user.userId === message.recipientId,
+      );
+
+      if (user) {
+         io.to(user.socketId).emit('getMessage', message);
+      }
    });
 
    socket.on('disconnect', () => {
-      console.log('User disconnected');
+      onlineUsers = onlineUsers.filter((user) => user.socketId !== socket.id);
+
+      io.emit('getOnlineUsers', onlineUsers);
    });
 });
 
