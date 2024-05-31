@@ -5,6 +5,8 @@ const messageSchema = new mongoose.Schema(
       chatId: String,
       senderId: String,
       text: String,
+      file_title: String,
+      file_url: String,
    },
    {
       timestamps: true,

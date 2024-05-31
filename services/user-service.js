@@ -1,118 +1,149 @@
-const UserDto = require("../dtos/user-dto");
-const ApiError = require("../exceptions/api-error");
-const tokenModel = require("../models/token-model");
-const userModel = require("../models/user-model");
-const tokenService = require("./token-service");
-const bcrypt = require('bcryptjs')
+const UserDto = require('../dtos/user-dto');
+const ApiError = require('../exceptions/api-error');
+const tokenModel = require('../models/token-model');
+const userModel = require('../models/user-model');
+const tokenService = require('./token-service');
+const bcrypt = require('bcryptjs');
 
-const {validationResult} = require('express-validator')
+const { validationResult } = require('express-validator');
 
+class UserService {
+   async registration(req, res, next) {
+      try {
+         const errors = validationResult(req);
 
-class UserService{
-    async registration(req, res, next){
-        try {
-            const errors = validationResult(req)
+         if (!errors.isEmpty()) {
+            return next(
+               ApiError.BadRequest('Validation failed', errors.array()),
+            );
+         }
 
-            if (!errors.isEmpty()){
-                return next(ApiError.BadRequest('Validation failed', errors.array()))
-            }
+         const { name, email, age, password } = req.body;
 
-            const {name, email, age, password} = req.body
-    
-            const candidate = await userModel.findOne({email})
-    
-            if (candidate) {
-                throw ApiError.BadRequest('This email is already in use!')
-            }
+         const candidate = await userModel.findOne({ email });
 
-            const passwordHash = await bcrypt.hash(password, 8);
-    
-            const user = await userModel.create({
-                name, 
-                email, 
-                age, 
-                password: passwordHash
-            })
+         if (candidate) {
+            throw ApiError.BadRequest('This email is already in use!');
+         }
 
-            const userDto = new UserDto(user)
-            const tokens = tokenService.generateTokens({...userDto})
+         const passwordHash = await bcrypt.hash(password, 8);
 
-            await tokenService.saveToken(userDto.id, tokens.refreshToken)
+         const user = await userModel.create({
+            name,
+            email,
+            age,
+            password: passwordHash,
+         });
 
-            res.cookie('refreshToken', tokens.refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true})
+         const userDto = new UserDto(user);
+         const tokens = tokenService.generateTokens({ ...userDto });
 
-            return res.json({...tokens, user: userDto})
-        } catch (error) {
-            next(error)
-        }
-    }
+         await tokenService.saveToken(userDto.id, tokens.refreshToken);
 
-    async login(req, res, next){
-        try {
-            const {email, password} = req.body
-            
-            const user = await userModel.findOne({email})
-            if (!user){
-                throw ApiError.BadRequest("Email or Password is not correct!")
-            }
+         res.cookie('refreshToken', tokens.refreshToken, {
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+         });
 
-            const isPassEquals = await bcrypt.compare(password, user.password)
-            if(!isPassEquals){
-                throw ApiError.BadRequest("Email or Password is not correct!")
-            }
+         return res.json({ ...tokens, user: userDto });
+      } catch (error) {
+         next(error);
+      }
+   }
 
-            const userDto = new UserDto(user)
-            const tokens = tokenService.generateTokens({...userDto})
-            await tokenService.saveToken(userDto.id, tokens.refreshToken)
+   async login(req, res, next) {
+      try {
+         const { email, password } = req.body;
 
-            res.cookie('refreshToken', tokens.refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true})
-            return res.json({...tokens, user: userDto})
-        } catch (error) {
-            next(error)
-        }
-    }
+         const user = await userModel.findOne({ email });
+         if (!user) {
+            throw ApiError.BadRequest('Email or Password is not correct!');
+         }
 
-    async logout(req, res, next){
-        try {
-            const {refreshToken} = req.cookies;
+         const isPassEquals = await bcrypt.compare(password, user.password);
+         if (!isPassEquals) {
+            throw ApiError.BadRequest('Email or Password is not correct!');
+         }
 
-            const token = await tokenService.removeToken(refreshToken);
+         const userDto = new UserDto(user);
+         const tokens = tokenService.generateTokens({ ...userDto });
+         await tokenService.saveToken(userDto.id, tokens.refreshToken);
 
-            res.clearCookie('refreshToken')
-            return res.json(token)
-        } catch (error) {
-            next(error)
-        }
-    }
+         res.cookie('refreshToken', tokens.refreshToken, {
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+         });
+         return res.json({ ...tokens, user: userDto });
+      } catch (error) {
+         next(error);
+      }
+   }
 
-    async refresh(req, res, next){
-        try {
-            const { refreshToken } = req.cookies
+   async logout(req, res, next) {
+      try {
+         const { refreshToken } = req.cookies;
 
-            if (!refreshToken){
-                throw ApiError.UnauthorizedError()
-            }
+         const token = await tokenService.removeToken(refreshToken);
 
-            const userData = tokenService.validateAccessToken(refreshToken)
-            const tokenFromDb = await tokenService.findToken(refreshToken)
+         res.clearCookie('refreshToken');
+         return res.json(token);
+      } catch (error) {
+         next(error);
+      }
+   }
 
-            if (!userData || !tokenFromDb) {
-                throw ApiError.UnauthorizedError()
-            }
+   async refresh(req, res, next) {
+      try {
+         const { refreshToken } = req.cookies;
 
-            const user = await userModel.findById(userData.id)
+         if (!refreshToken) {
+            throw ApiError.UnauthorizedError();
+         }
 
-            const userDto = new UserDto(user)
-            const tokens = tokenService.generateTokens({...userDto})
+         const userData = tokenService.validateAccessToken(refreshToken);
+         const tokenFromDb = await tokenService.findToken(refreshToken);
 
-            await tokenService.saveToken(userDto.id, tokens.refreshToken)
+         if (!userData || !tokenFromDb) {
+            throw ApiError.UnauthorizedError();
+         }
 
-            res.cookie('refreshToken', tokens.refreshToken, {maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true})
-            return res.json({...tokens, user: userDto})
-        } catch (error) {
-            next(error)
-        }
-    }
+         const user = await userModel.findById(userData.id);
+
+         const userDto = new UserDto(user);
+         const tokens = tokenService.generateTokens({ ...userDto });
+
+         await tokenService.saveToken(userDto.id, tokens.refreshToken);
+
+         res.cookie('refreshToken', tokens.refreshToken, {
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+         });
+         return res.json({ ...tokens, user: userDto });
+      } catch (error) {
+         next(error);
+      }
+   }
+
+   async getAll(req, res, next) {
+      try {
+         const users = await userModel.find();
+
+         return res.json(users);
+      } catch (error) {
+         next(error);
+      }
+   }
+
+   async getCertainUser(req, res, next) {
+      try {
+         const userId = req.params.id;
+         const user = await userModel.find({ _id: userId });
+
+         return res.json(user);
+      } catch (error) {
+         next(error);
+      }
+   }
 }
 
-module.exports = new UserService()
+module.exports = new UserService();

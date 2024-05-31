@@ -14,6 +14,10 @@ router.post('/logout', userService.logout);
 
 router.get('/refresh', userService.refresh);
 
+router.get('/all', userService.getAll);
+
+router.get('/certain/:id', userService.getCertainUser);
+
 // router.get('/',authMiddleware, (req, res) => {
 //     return res.json(process.env.JWT_ACCESS_SECRET)
 // })

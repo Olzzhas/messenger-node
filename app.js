@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const router = require('./router');
 const chatRoute = require('./routes/chatRoute');
+const storageRoute = require('./routes/google-storage-routes');
 const errorMiddleware = require('./middlewares/error-middleware');
 const app = new express();
 const http = require('http');
@@ -18,6 +19,9 @@ const io = new Server(server, {
 
 require('dotenv').config();
 
+const multer = require('multer');
+const { Storage } = require('@google-cloud/storage');
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.json());
@@ -26,23 +30,15 @@ app.use(cookieParser());
 app.use(cors());
 app.use('/user', router);
 app.use('/chat', chatRoute);
+app.use('/storage', storageRoute);
 
 app.use(errorMiddleware);
 
 mongoose.set('strictQuery', false);
 
+let onlineUsers = [];
+
 io.on('connection', (socket) => {
-   // console.log('A user connected');
-
-   // socket.on('send_message', (data) => {
-   //    socket.broadcast.emit('receive_message', data);
-   // });
-
-   // socket.on('disconnect', () => {
-   //    console.log('User disconnected');
-   // });
-   let onlineUsers = [];
-
    console.log('new connection', socket.id);
 
    // listen to a connection

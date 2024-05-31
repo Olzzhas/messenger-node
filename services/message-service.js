@@ -1,12 +1,14 @@
 const messageModel = require('../models/message-model');
 
 const createMessage = async (req, res) => {
-   const { chatId, senderId, text } = req.body;
+   const { chatId, senderId, text, file_title, file_url } = req.body;
 
    const message = new messageModel({
       chatId,
       senderId,
       text,
+      file_title,
+      file_url,
    });
 
    try {
@@ -30,4 +32,13 @@ const getMessages = async (req, res) => {
    }
 };
 
-module.exports = { createMessage, getMessages };
+const getAllMessages = async (req, res, next) => {
+   try {
+      const allMessages = await messageModel.find();
+      return res.json(allMessages);
+   } catch (error) {
+      next();
+   }
+};
+
+module.exports = { createMessage, getMessages, getAllMessages };
