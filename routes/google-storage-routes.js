@@ -16,7 +16,8 @@ const upload = multer({
 
 const storage = new Storage({
    keyFilename:
-      '/home/olzzhas/Desktop/Projects/Express/jwt-authorization-express/serviceAccount.json',
+      // '/home/olzzhas/Desktop/Projects/Express/jwt-authorization-express/serviceAccount.json',
+      '/etc/secrets/serviceAccount.json',
 });
 
 const bucketName = 'node-messanger-files';
