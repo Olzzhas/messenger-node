@@ -16,6 +16,7 @@ const { Server } = require('socket.io');
 const io = new Server(server, {
    cors: {
       origin: 'https://frabjous-meringue-2aca4f.netlify.app',
+      // origin: 'http://localhost:3000',
    },
 });
 

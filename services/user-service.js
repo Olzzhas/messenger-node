@@ -18,7 +18,7 @@ class UserService {
             );
          }
 
-         const { name, email, age, password } = req.body;
+         const { name, email, age, password, image_url } = req.body;
 
          const candidate = await userModel.findOne({ email });
 
@@ -32,6 +32,7 @@ class UserService {
             name,
             email,
             age,
+            image_url,
             password: passwordHash,
          });
 
