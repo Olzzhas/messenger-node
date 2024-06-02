@@ -11,9 +11,11 @@ const app = new express();
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require('socket.io');
+
+//test
 const io = new Server(server, {
    cors: {
-      origin: 'https://frabjous-meringue-2aca4f.netlify.app/',
+      origin: 'https://frabjous-meringue-2aca4f.netlify.app',
    },
 });
 
